@@ -1,0 +1,36 @@
+% Ejercicio4:
+% a) Generar una matriz A, 10x10, de números enteros aleatorios entre 0 y 5 
+
+A = round(5*rand(10,10));
+
+% b) Guarda en un vector fila, llamado valoresA, los valores distintos
+% que aparecen en A 
+valoresA = unique(A)'
+% c) Inicializa con ceros un vector fila, llamado conteoValores,
+% de tantos elementos como valores distintos haya en A
+conteoValores = zeros(size(valoresA));
+% d) Guarda en las posiciones de conteoValores el número de veces que
+% aparece en A cada uno de sus posiles valores
+[nF, nC] = size(A)
+
+for i=i:nF
+    for j=1:nC
+        valorOI = A(i,j)
+        indice = valorOI+1
+        conteoValores(indice) = conteoValores(indice) + 1
+    end
+end
+
+A
+
+conteoValores 
+
+for i=1:length(valoresA)
+   
+   conteoValores(i) = sum(A(:)==valoresA(i))
+
+end
+
+% e) Representa con stem, valoresA frente a conteoValores
+
+stem(valoresA,conteoValores)
