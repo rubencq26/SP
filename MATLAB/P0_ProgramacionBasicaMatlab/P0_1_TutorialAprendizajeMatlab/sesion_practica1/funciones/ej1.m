@@ -1,0 +1,36 @@
+% Ejercicio1: 
+% a) Crea un vector V de 10 elementos con números aleatorios enteros entre 0 y 10.
+clear,clc
+nElem = 10; vmin = 0; vMax =10;
+
+V = round((vMax-vmin)*rand(1,nElem)) + vmin
+
+
+
+% b) Genera un vector binario donde el 1 binario señala a los elementos
+% del vector que son menores o iguales a 5.
+
+umbral = 5;
+Vb = false(size(V));
+for i=1:nElem
+    if V(1,i) <= umbral
+        Vb(i) = true;
+    end
+end
+
+Vb = V <=5
+% c) Encuentra con la función find las posiciones en el vector de esos elementos
+
+posOI = find(Vb)
+
+% d) Encuentra la posición del valor máximo de V
+V
+vMax = max(V)
+
+pos = find(V == max(V))
+
+% e) Ordena los elmentos del vector, de mayor a menor, obteniendo las
+% posiciones donde se encuentran en V
+
+[vSort, posOr] = sort(V,"descend");
+[V; vSort; posOr]
