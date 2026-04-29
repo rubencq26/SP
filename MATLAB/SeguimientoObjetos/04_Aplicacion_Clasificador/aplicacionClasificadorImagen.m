@@ -257,14 +257,112 @@ for i = 1 : siz(4)
     In = rgb2gray(I);
     Iabs = imabsdiff(In,I2);
     
-    Ifin = Iabs(Iet);
 
     if max(Ifin(:)) < 50
         Iet= zeros(siz(1), siz(2), 'logical');
 
+    else
+        Centroides = regionprops(Iet, "Centroid");
+    
+        if ~isempty(Centroides)
+            Cx = round(Centroides(1).Centroid(1));
+            Cy = round(Centroides(1).Centroid(2));
+        
+            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
+            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
+            
+            
+        end
+
     end
     Ivisualiza = zeros(siz(1), siz(2), 'uint8');
     Ivisualiza(Iet) = Iabs(Iet);
+    
+    if sum(Iet(:)) > 0
+        Ivisualiza(rangoY, rangoX) = 255;
+    end
+
+    imshow(Ivisualiza);
+    drawnow;
+    writeVideo(video, Ivisualiza);
+
+end
+close(video);
+
+
+
+%b) Consideraremos que una agrupación de píxeles detectados del color de seguimiento está en movimiento
+%si al menos uno de sus píxeles presenta variaciones de intensidad significativas (diferencia de intensidad 
+%en valor absoluto mayor que 40) respecto a una imagen de fondo cargada previamente por el algoritmo.
+%El valor de cada píxel de esta imagen debe calcularse como la mediana los valores del píxel dado en 
+% todas las imágenes de calibración de fondo disponibles (sin el objeto). ´
+
+clc, clear, close all;
+
+load("01_Generacion_del_material\FramesVideo.mat");
+load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
+load("03_Diseño_Clasificador_Esferas\centroradio.mat");
+load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
+
+addpath("Funciones\");
+video = VideoWriter("Videos\video4b.avi");
+video.FrameRate = 7;
+video.Quality = 100;
+
+siz = size(FramesVideo);
+
+XCol = X(Y==1,:);
+XFondo = X(Y==0,:);
+esferas = funcion_kmeans(XCol, XFondo, 20);
+
+open(video);
+
+Ifondo = FramesVideo(:,:,:,1);
+Ifondo = rgb2gray(Ifondo);
+
+for i = 1 : siz(4)
+    
+    I = FramesVideo(:,:,:,i);
+    
+    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
+
+    Ietiq = bwlabel(Mascara2D, 8);
+    Ietiq = bwareaopen(Ietiq, round(NumPix), 8);
+
+    stats = regionprops(Ietiq, 'Area');
+    Iet = zeros(siz(1), siz(2), 'logical');
+    if ~isempty(stats)
+        [~, Ord] = sort([stats.Area], 'descend');
+        Iet = (Ietiq == Ord(1)); 
+    end
+    In = rgb2gray(I);
+    Iabs = imabsdiff(In,Ifondo);
+    
+   
+    if max(Ifin(:)) < 40
+        Iet= zeros(siz(1), siz(2), 'logical');
+
+    else
+        Centroides = regionprops(Iet, "Centroid");
+    
+        if ~isempty(Centroides)
+            Cx = round(Centroides(1).Centroid(1));
+            Cy = round(Centroides(1).Centroid(2));
+        
+            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
+            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
+            
+            
+        end
+
+    end
+    Ivisualiza = zeros(siz(1), siz(2), 'uint8');
+    Ivisualiza(Iet) = Iabs(Iet);
+    
+    if sum(Iet(:)) > 0
+        Ivisualiza(rangoY, rangoX) = 255;
+    end
+
     imshow(Ivisualiza);
     drawnow;
     writeVideo(video, Ivisualiza);
