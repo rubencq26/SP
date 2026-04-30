@@ -1,371 +1,80 @@
-% 4.1  Visualizar sobre el frame original los centroides de las agrupaciones que tengan el número
-%mínimo de píxeles dado por el umbral de conectividad. El centroide debe visualizarse mediante
-%una caja blanca 7x7.
+% Clasificador de 1 esfera
+clear, close all, clc;
 
-clc, clear, close all;
+load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
+
+addpath("03_Diseño_Clasificador_Esferas\");
+
+FoI = Y == 1;
+XColor = X(FoI, :);
+
+FoI = Y == 0;
+XFondo = X(FoI,:);
+
+datosEsfera = calcula_datos_esfera(XColor, XFondo);
+
+FoI = Y == 0;
+
+plot3(X(FoI,1), X(FoI,2), X(FoI, 3), "*r");
+
+hold on;
+
+FoI = Y == 1;
+plot3(X(FoI,1), X(FoI,2), X(FoI, 3), "*b");
+xlabel("Rojo");
+ylabel("Verde");
+zlabel("Azul");
+legend("Fondo", "Colores");
+
+C = datosEsfera(1:3);
+R = datosEsfera(4);
+representa_esfera(C, R);
+
+save("03_Diseño_Clasificador_Esferas\centroradio.mat","C", "R");
+
+
+% Prueba en video
 
 load("01_Generacion_del_material\FramesVideo.mat");
-load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
-load("03_Diseño_Clasificador_Esferas\centroradio.mat");
-load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
-
 addpath("Funciones\");
 
-video = VideoWriter("Videos\video1.avi");
-video.FrameRate = 7;
-video.Quality = 100;
+Ib = roipoly(FramesVideo(:,:,:,75));
+NumPix = round(0.5 * sum(Ib(:)));
 
-siz = size(FramesVideo);
+save("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat", "NumPix");
 
-XCol = X(Y==1,:);
-XFondo = X(Y==0,:);
-esferas = funcion_kmeans(XCol, XFondo, 20);
+[Filas, Columnas, Canales, nImagenes] = size(FramesVideo)
 
-open(video);
-for i = 1 : siz(4)
+C_prof = reshape(C,1,1,3);
+
+
+
+
+
+for i = 1 : nImagenes
     I = FramesVideo(:,:,:,i);
+
     
-    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
+
+    Mascara2D = calcula_deteccion_1esfera(I, [C R]');
     
-   
-    Ietiq = bwareaopen(Mascara2D, round(NumPix), 8);
-    [Ietiq, N] = bwlabel(Ietiq, 8);
-    
+    Ietiq = bwlabel(Mascara2D,8);
+
+    Ietiq = bwareaopen(Ietiq, NumPix);
 
     Centroides = regionprops(Ietiq, "Centroid");
     
-    for j = 1 : N
-        Cx = round(Centroides(1).Centroid(1));
-        Cy = round(Centroides(1).Centroid(2));
-        
-     
-        rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
-        rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
-        I(rangoY, rangoX, :) = 255;
-     end
-    
-    
     imshow(I);
-    writeVideo(video, I);
+    hold on;
+    for k = 1:length(Centroides)
+        plot(Centroides(k).Centroid(1), Centroides(k).Centroid(2), "*r");
+    end
+    hold off;
     drawnow;
 end
-close(video);
-
-implay("Videos/video1.avi");
-
-%4.2.- Visualizar sobre el frame original todos los píxeles y el centroide de la agrupación con
-%mayor número de píxeles. Para visualizar los píxeles se debe utilizar un color que los distinga.
-% El centroide debe visualizarse mediante una caja blanca 7x7.
-
-clc, clear, close all;
-
-load("01_Generacion_del_material\FramesVideo.mat");
-load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
-load("03_Diseño_Clasificador_Esferas\centroradio.mat");
-load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
-
-addpath("Funciones\");
-
-video = VideoWriter("Videos\video2.avi");
-video.FrameRate = 7;
-video.Quality = 100;
-
-siz = size(FramesVideo);
-
-XCol = X(Y==1,:);
-XFondo = X(Y==0,:);
-esferas = funcion_kmeans(XCol, XFondo, 20);
-
-open(video)
-
-for i = 1 : siz(4)
-    I = FramesVideo(:,:,:,i);
-    
-    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
-    
-    
-    Ietiq = bwlabel(Mascara2D, 8);
-    Ietiq = bwareaopen(Ietiq, round(NumPix), 8);
-
-    stats = regionprops(Ietiq, 'Area');
-    if ~isempty(stats)
-        
-        [~, Ord] = sort([stats.Area], 'descend');
-    
-       
-        Iet = (Ietiq == Ord(1)); 
-    
-        
-        Centroides = regionprops(Iet, "Centroid");
-    
-        if ~isempty(Centroides)
-            Cx = round(Centroides(1).Centroid(1));
-            Cy = round(Centroides(1).Centroid(2));
-        
-            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
-            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
-            I(rangoY, rangoX, :) = 255;
-            
-        end
-    end
-    
-    imshow(I);
-    drawnow;
-    writeVideo(video,I);
-end
-
-close(video);
-
-implay("Videos/video2.avi");
-
-
-% 4.3.- Visualizar sobre el frame original las siguientes agrupaciones y centroides:
-% − En cian: los píxeles de todas las agrupaciones detectadas. No hay que visualizar ningún centroide.
-% − En azul, la agrupación mayor de píxeles y su centroide mediante una caja blanca 7x7.
-% − En verde: la segunda agrupación mayor de píxeles y su centroide mediante una caja blanca 7x7.
-clc, clear, close all;
-
-load("01_Generacion_del_material\FramesVideo.mat");
-load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
-load("03_Diseño_Clasificador_Esferas\centroradio.mat");
-load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
-
-addpath("Funciones\");
-video = VideoWriter("Videos\video3.avi");
-video.FrameRate = 7;
-video.Quality = 100;
-
-siz = size(FramesVideo);
-
-XCol = X(Y==1,:);
-XFondo = X(Y==0,:);
-esferas = funcion_kmeans(XCol, XFondo, 20);
-
-open(video);
-for i = 1 : siz(4)
-    I = FramesVideo(:,:,:,i);
-    %cian
-    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
-    Ib = logical(Mascara2D);
-    
-    R = I(:,:,1);
-    G = I(:,:,2);
-    B = I(:,:,3);
-
-    R(Ib) = 0;
-    G(Ib) = 255;
-    B(Ib) = 255;
-    
-    I = cat(3,R,G,B);
-    % azul
-    Ietiq = bwlabel(Ib, 8);
-    stats = regionprops(Ietiq, 'Area');
-      if ~isempty(stats)
-        
-        [~, Ord] = sort([stats.Area], 'descend');
-        Iet = (Ietiq == Ord(1)); 
-        if length(Ord) > 1
-            Iet2 = (Ietiq == Ord(2)); 
-        end
-        Centroides = regionprops(Iet, "Centroid");
-        
-        R = I(:,:,1);
-        G = I(:,:,2);
-        B = I(:,:,3);
-
-        R(Iet) = 0;
-        G(Iet) = 0;
-        B(Iet) = 255;
-        if length(Ord) > 1
-            R(Iet2) = 0;
-            G(Iet2) = 255;
-            B(Iet2) = 0;
-        end
-        
-
-    
-        I = cat(3,R,G,B);
-
-        if ~isempty(Centroides)
-            Cx = round(Centroides(1).Centroid(1));
-            Cy = round(Centroides(1).Centroid(2));
-        
-            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
-            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
-            I(rangoY, rangoX, :) = 255;
-            
-        end
-      end
-
-    
-    imshow(I);
-    drawnow;
-    writeVideo(video, I);
-end
-
-close(video);
-
-implay("Videos/video3.avi");
 
 
 
-% 4.4.- Visualizar sobre el frame original los píxeles y el centroide de la agrupación mayor de
-% píxeles en movimiento para los siguientes casos: 
-
-% a) Consideraremos que una agrupación de píxeles detectados del color de seguimiento está
-% en movimiento si al menos uno de sus píxeles presenta variaciones de intensidad
-% significativas (diferencia de intensidad en valor absoluto mayor que 50) respecto al
-% penúltimo frame capturado.
-
-clc, clear, close all;
-
-load("01_Generacion_del_material\FramesVideo.mat");
-load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
-load("03_Diseño_Clasificador_Esferas\centroradio.mat");
-load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
-
-addpath("Funciones\");
-video = VideoWriter("Videos\video4a.avi");
-video.FrameRate = 7;
-video.Quality = 100;
-
-siz = size(FramesVideo);
-
-XCol = X(Y==1,:);
-XFondo = X(Y==0,:);
-esferas = funcion_kmeans(XCol, XFondo, 20);
-
-open(video);
-
-I = FramesVideo(:,:,:,1);
-
-for i = 1 : siz(4)
-    I2 = rgb2gray(I);
-    I = FramesVideo(:,:,:,i);
-    
-    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
-
-    Ietiq = bwlabel(Mascara2D, 8);
-    Ietiq = bwareaopen(Ietiq, round(NumPix), 8);
-
-    stats = regionprops(Ietiq, 'Area');
-    Iet = zeros(siz(1), siz(2), 'logical');
-    if ~isempty(stats)
-        [~, Ord] = sort([stats.Area], 'descend');
-        Iet = (Ietiq == Ord(1)); 
-    end
-    In = rgb2gray(I);
-    Iabs = imabsdiff(In,I2);
-    
-
-    if max(Ifin(:)) < 50
-        Iet= zeros(siz(1), siz(2), 'logical');
-
-    else
-        Centroides = regionprops(Iet, "Centroid");
-    
-        if ~isempty(Centroides)
-            Cx = round(Centroides(1).Centroid(1));
-            Cy = round(Centroides(1).Centroid(2));
-        
-            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
-            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
-            
-            
-        end
-
-    end
-    Ivisualiza = zeros(siz(1), siz(2), 'uint8');
-    Ivisualiza(Iet) = Iabs(Iet);
-    
-    if sum(Iet(:)) > 0
-        Ivisualiza(rangoY, rangoX) = 255;
-    end
-
-    imshow(Ivisualiza);
-    drawnow;
-    writeVideo(video, Ivisualiza);
-
-end
-close(video);
 
 
 
-%b) Consideraremos que una agrupación de píxeles detectados del color de seguimiento está en movimiento
-%si al menos uno de sus píxeles presenta variaciones de intensidad significativas (diferencia de intensidad 
-%en valor absoluto mayor que 40) respecto a una imagen de fondo cargada previamente por el algoritmo.
-%El valor de cada píxel de esta imagen debe calcularse como la mediana los valores del píxel dado en 
-% todas las imágenes de calibración de fondo disponibles (sin el objeto). ´
-
-clc, clear, close all;
-
-load("01_Generacion_del_material\FramesVideo.mat");
-load("02_Extraer_RepresentarDatos\conjunto_modificado.mat");
-load("03_Diseño_Clasificador_Esferas\centroradio.mat");
-load("03_Diseño_Clasificador_Esferas\umbral_conectividad.mat");
-
-addpath("Funciones\");
-video = VideoWriter("Videos\video4b.avi");
-video.FrameRate = 7;
-video.Quality = 100;
-
-siz = size(FramesVideo);
-
-XCol = X(Y==1,:);
-XFondo = X(Y==0,:);
-esferas = funcion_kmeans(XCol, XFondo, 20);
-
-open(video);
-
-Ifondo = FramesVideo(:,:,:,1);
-Ifondo = rgb2gray(Ifondo);
-
-for i = 1 : siz(4)
-    
-    I = FramesVideo(:,:,:,i);
-    
-    Mascara2D = calcula_deteccion_multiples_esferas(I, esferas);
-
-    Ietiq = bwlabel(Mascara2D, 8);
-    Ietiq = bwareaopen(Ietiq, round(NumPix), 8);
-
-    stats = regionprops(Ietiq, 'Area');
-    Iet = zeros(siz(1), siz(2), 'logical');
-    if ~isempty(stats)
-        [~, Ord] = sort([stats.Area], 'descend');
-        Iet = (Ietiq == Ord(1)); 
-    end
-    In = rgb2gray(I);
-    Iabs = imabsdiff(In,Ifondo);
-    
-   
-    if max(Ifin(:)) < 40
-        Iet= zeros(siz(1), siz(2), 'logical');
-
-    else
-        Centroides = regionprops(Iet, "Centroid");
-    
-        if ~isempty(Centroides)
-            Cx = round(Centroides(1).Centroid(1));
-            Cy = round(Centroides(1).Centroid(2));
-        
-            rangoY = max(1, Cy-3) : min(siz(1), Cy+3);
-            rangoX = max(1, Cx-3) : min(siz(2), Cx+3);
-            
-            
-        end
-
-    end
-    Ivisualiza = zeros(siz(1), siz(2), 'uint8');
-    Ivisualiza(Iet) = Iabs(Iet);
-    
-    if sum(Iet(:)) > 0
-        Ivisualiza(rangoY, rangoX) = 255;
-    end
-
-    imshow(Ivisualiza);
-    drawnow;
-    writeVideo(video, Ivisualiza);
-
-end
-close(video);
